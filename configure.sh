@@ -31,6 +31,43 @@ mylog(){
   echo $w "$(tput setaf $c)$p$@$s$(tput op)"
 }
 
+create_machine(){
+  # latest stable coreos
+  latest_coreos_url=$(curl -s https://builds.coreos.fedoraproject.org/streams/stable.json|jq -r '.architectures.x86_64.artifacts.qemu.formats."qcow2.xz".disk.location')
+
+  # the current user HOME folder is forwarded in VM so that persistent storage can be specified in containers and podman volume mounts also works on host
+  users_home="$HOME"
+
+  #podman_socket=$HOME/.local/share/containers/podman/machine/$NAME/podman.sock
+  #  --volume="$podman_socket:/var/run/docker.sock:rw,security_model=none" \
+
+  # Create machine with attributes
+  # if necessary, those can be changed with `podman machine set`
+  mylog info "Creating machine: $NAME"
+  podman machine init \
+    --cpus=$CPUS \
+    --memory=$RAM_MB \
+    --disk-size=$DISK_GB \
+    --volume="$users_home:$users_home:rw,security_model=none" \
+    --image-path=$latest_coreos_url \
+    $NAME
+
+  mylog info "Setting machine $NAME as default"
+  podman system connection default $NAME
+
+  # alter qemu configuration to set type as x86 and remove unsupported parameters
+  mylog info "Fixing machine $NAME parameters"
+  config_file=$(podman machine inspect $NAME|jq -r '.[0].ConfigPath.Path')
+  sed -E \
+    -e '/^  "-[^"]*",$/ N' \
+    -e 's|aarch64|x86_64|' \
+    -e '/ovmf_vars/ d' \
+    -e '/"-accel",/ d' \
+    -e '/"-cpu",/ d' \
+    -e '/"-M",/ d' \
+    -i '' \
+    "$config_file"
+}
 mylog check "Checking jq"
 if jq --version > /dev/null 2>&1;then mylog ok ", jq found";else
   mylog error "Please install jq" 1>&2
@@ -45,39 +82,19 @@ fi
 
 # Check that machine is not already configured
 mylog check "Checking if machine does not already exist"
-if ! podman machine inspect $NAME 2> /dev/null 1>&2;then mylog ok ", machine does not exist";else
-    mylog error "Machine already exists: $NAME" 1>&2
-    exit 1
+if ! podman machine inspect $NAME 2> /dev/null 1>&2;then
+  mylog ok ", machine does not exist"
+  create_machine
+else
+  mylog warn "Machine already exists: $NAME" 1>&2
+  users_home="$HOME"
+  config_file=$(podman machine inspect $NAME|jq -r '.[0].ConfigPath.Path')
 fi
 
-# latest stable coreos
-latest_coreos_url=$(curl -s https://builds.coreos.fedoraproject.org/streams/stable.json|jq -r '.architectures.x86_64.artifacts.qemu.formats."qcow2.xz".disk.location')
-
-# the current user HOME folder is forwarded in VM so that persistent storage can be specified in containers and podman volume mounts also works on host
-users_home="$HOME"
-
-# Create machine with attributes
-# if necessary, those can be changed with `podman machine set`
-mylog info "Creating machine: $NAME"
-podman machine init \
-  --cpus=$CPUS \
-  --memory=$RAM_MB \
-  --disk-size=$DISK_GB \
-  --volume="$users_home:$users_home" \
-  --image-path=$latest_coreos_url \
-  $NAME
-
-mylog info "Setting machine $NAME as default"
-podman system connection default $NAME
-
-# alter qemu configuration to set type as x86 and remove unsupported parameters
-mylog info "Fixing machine $NAME parameters"
-sed -E \
-  -e '/^  "-[^"]*",$/ N' \
-  -e 's|aarch64|x86_64|' \
-  -e '/ovmf_vars/ d' \
-  -e '/"-accel",/ d' \
-  -e '/"-cpu",/ d' \
-  -e '/"-M",/ d' \
-  -i '' \
-  $(podman machine inspect $NAME|jq -r '.[0].ConfigPath.Path')
+mount_tag=$(sed -nEe "s|.*path=$users_home,mount_tag=([^,]+),.*|\1|p" "$config_file")
+if test -z "$mount_tag";then
+  mylog error "No mount tag" 1>&2
+  exit 1
+fi
+echo "If the user volume mount does not work, you can manually mount with:"
+echo "podman machine ssh $NAME sudo mount -t 9p -o trans=virtio,version=9p2000.L $mount_tag $users_home"
