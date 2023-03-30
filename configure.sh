@@ -1,8 +1,8 @@
 #!/bin/bash
+# configure podman to run x86_64 containers on ARM Mac
 # Laurent Martin IBM 2022
 # tested on macOS 12.6 with Apple M1 Max
 # https://developer.ibm.com/tutorials/running-x86-64-containers-mac-silicon-m1/
-# configure podman to run x86_64 containers on ARM Mac
 
 # VM parameters: assign default values
 : ${NAME:=intel_64}
@@ -18,19 +18,20 @@ mylog(){
   w=
   s=
   case $1 in
-  info)c=2;;#green
-  error)c=1;p='ERROR: ';;#red
-  warn)c=3;;#yellow
-  wait)c=4;p="$(date) ";;#blue
-  check)c=6;w=-n;s=...;;#cyan
-  ok)c=2;p=OK;;#green
-  no)c=3;p=NO;;#yellow
-  *) c=9;;#default
+  info) c=2;;
+  error) c=1;p='ERROR: ';;
+  warn) c=3;;
+  wait) c=4;p="$(date) ";;
+  check) c=6;w=-n;s=...;;
+  ok) c=2;p=OK;;
+  no) c=3;p=NO;;
+  *) c=9;;
   esac
   shift
   echo $w "$(tput setaf $c)$p$@$s$(tput op)"
 }
 
+# main
 create_machine(){
   # latest stable coreos
   latest_coreos_url=$(curl -s https://builds.coreos.fedoraproject.org/streams/stable.json|jq -r '.architectures.x86_64.artifacts.qemu.formats."qcow2.xz".disk.location')
@@ -80,7 +81,6 @@ if podman -v > /dev/null 2>&1;then mylog ok ", podman found";else
   exit 1
 fi
 
-# Check that machine is not already configured
 mylog check "Checking if machine does not already exist"
 if ! podman machine inspect $NAME 2> /dev/null 1>&2;then
   mylog ok ", machine does not exist"
