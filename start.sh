@@ -4,21 +4,23 @@ machine_name=$1
 export ssh_port=$(podman machine inspect $machine_name|jq -r '.[0].SSHConfig.Port')
 # start machine in background
 podman machine start $machine_name &
-# get the PID
+# get podman's PID
 export podmanpid=$!
-# give some startup time
+# give some time to podman to start qemu
 sleep 3
-# stop podman
+# stop podman (pause)
 echo Pausing podman
 kill -STOP $podmanpid
-# wait for qemu machine to present working SSH server
+# wait until the qemu vm presents working SSH server
 while true ;do
+    # check if SSH header is answered
     if (sleep 1;echo)|nc localhost $ssh_port|grep '^SSH' ;then
-        # continue podman
+        # resume podman process
         echo Resuming podman
         kill -CONT $podmanpid
         break
     fi
+    # if podman exited due to error, stop waiting
     if ! ps -p $podmanpid > /dev/null;then
         echo ERROR: podman exited
         exit 1
