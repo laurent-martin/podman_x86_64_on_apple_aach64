@@ -40,9 +40,6 @@ podman machine set --cpus=4 --disk-size=40 --memory=4096 intel_64
 
 ## VM startup
 
-The script does not start the VM, but it display the command to start the VM.
-The VM startup time will last a bit due to pure emulation without acceleration.
-
 Often, simple startup results with:
 
 ```bash
@@ -56,18 +53,39 @@ Mounting volume... /Users/laurent:/Users/laurent
 Error: exit status 255
 ```
 
-This is due to qemu taking too much time to startup the machine (due to slowness...).
+This is due to `qemu` taking too much time to startup the machine and make SSH available soon enough for podman to execute the mount command.
 
-To solve this issue, one way is to slow down `podman`, and give an extra minute for `qemu` to start the machine:
+To solve this issue, one way is to slow down `podman`, the script `start.sh` is provided:
 
 ```bash
-podman machine start intel_64 && sleep 3 && pkill -STOP podman gvproxy && sleep 60 && pkill -CONT podman gvproxy
+./start.sh intel_64
 ```
 
 ```text
 Starting machine "intel_64"
 Waiting for VM ...
+Pausing podman
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+Waiting for SSH
+SSH-2.0-OpenSSH_8.8
+Resuming podman
 Mounting volume... /Users/laurent:/Users/laurent
+
+This machine is currently configured in rootless mode. If your containers
+require root permissions (e.g. ports < 1024), or if you run into compatibility
+issues with non-podman clients, you can switch using the following command:
+
+	podman machine set --rootful intel_64
+
+API forwarding listening on: /var/run/docker.sock
+Docker API clients default to this address. You do not need to set DOCKER_HOST.
 
 Machine "intel_64" started successfully
 ```
