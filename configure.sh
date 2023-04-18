@@ -60,14 +60,15 @@ create_machine(){
   # changed '-cpu host' to '-cpu max' to resolve 'Fatal glibc error: CPU does not support x86-64-v2' for RHEL 9 images
   mylog info "Fixing machine $NAME parameters"
   config_file=$(podman machine inspect $NAME|jq -r '.[0].ConfigPath.Path')
-  sed -E \
-    -e '/^  "-[^"]*",$/ N' \
-    -e 's|aarch64|x86_64|' \
-    -e 's|host|max|' \
-    -e '/ovmf_vars/ d' \
-    -e '/"-accel",/ d' \
-    -e '/"-M",/ d' \
-    -i '' \
+  sed \
+    -i ''                  `#modify in place`\
+    -E                     `#extended syntax`\
+    -e '/^  "-[^"]*",$/ N' `#merge option with next line for processing`\
+    -e 's|aarch64|x86_64|' `#change CPU architecture`\
+    -e 's|"host"|"max"|'   `#support RHEL9 for option -cpu`\
+    -e '/ovmf_vars/ d'     `#not supported`\
+    -e '/"-accel",/ d'     `#not supported`\
+    -e '/"-M",/ d'         `#not supported`\
     "$config_file"
 }
 mylog check "Checking jq"
@@ -99,3 +100,6 @@ if test -z "$mount_tag";then
 fi
 echo "If the user volume mount does not work, you can manually mount with:"
 echo "podman machine ssh $NAME sudo mount -t 9p -o trans=virtio,version=9p2000.L $mount_tag $users_home"
+echo
+echo "Start the machine with:"
+echo "./start.sh $NAME"
