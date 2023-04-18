@@ -2,11 +2,13 @@
 
 ## Description
 
-This repo contains one script that makes it easy to configure `podman` to run x86_64 containers on macOS running on aarch64 (Apple Silicon, M1, ...)
+Two scripts that makes it easier to configure `podman` to run x86_64 containers on macOS running on aarch64 (Apple Silicon, M1, ...)
 
-The script creates a VM using `podman machine` and then edits the VM parameters.
+A VM is created using `podman machine` and then VM parameters are modified.
 
 By default the created VM mounts `$HOME` (i.e. `/Users/[username]`) so that containers using volumes in the user's home also have access to it (for example, for persistent storage).
+
+The second script overcomes a problem whereby the VM startup time is too slow for podman to wait and mount the volume.
 
 ## Pre-requisites
 
@@ -18,7 +20,7 @@ macOS >= 12.6
 
 > **Note:** Missing tools can easily be installed with [`brew`](https://brew.sh)
 
-## Usage
+## Virtual Machine: Creation with x86_64 CPU type
 
 Default use:
 
@@ -53,7 +55,7 @@ Mounting volume... /Users/laurent:/Users/laurent
 Error: exit status 255
 ```
 
-This is due to `qemu` taking too much time to startup the machine and make SSH available soon enough for podman to execute the mount command.
+This is due to the `qemu` emulator taking too much time to startup the machine and make SSH available soon enough for podman to execute the mount command.
 
 To solve this issue, one way is to slow down `podman`, the script `start.sh` is provided:
 
