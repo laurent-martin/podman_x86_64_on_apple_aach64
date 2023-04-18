@@ -9,24 +9,24 @@ export podmanpid=$!
 # give some time to podman to start qemu
 sleep 3
 # stop podman (pause)
-echo Pausing podman
+echo 'Pausing podman'
 kill -STOP $podmanpid
-# wait until the qemu vm presents working SSH server
-while true ;do
-    # check if SSH header is answered
-    if (sleep 1;echo)|nc localhost $ssh_port|grep '^SSH' ;then
-        # resume podman process
-        echo Resuming podman
-        kill -CONT $podmanpid
-        break
-    fi
+# wait until the SSH server on the qemu vm is available
+while true ;do for spinner in - \\ \| /; do
     # if podman exited due to error, stop waiting
     if ! ps -p $podmanpid > /dev/null;then
-        echo ERROR: podman exited
+        echo 'ERROR: podman exited prematurely'
         exit 1
     fi
-    echo Waiting for SSH
-    sleep 5
-done&
+    # check if SSH is listening
+    if (sleep 1;echo)|nc localhost $ssh_port|grep --quiet '^SSH';then
+        # resume podman process
+        echo -e "\rSSH available: Resuming podman."
+        kill -CONT $podmanpid
+        break 2
+    fi
+    echo -en "\rWaiting for SSH $spinner"
+    sleep 2
+done;done&
 # wait for subprocesses to complete
 wait
