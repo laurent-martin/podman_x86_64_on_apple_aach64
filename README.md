@@ -67,17 +67,7 @@ To solve this issue, one way is to slow down `podman`, the script `start.sh` is 
 Starting machine "intel_64"
 Waiting for VM ...
 Pausing podman
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-Waiting for SSH
-SSH-2.0-OpenSSH_8.8
-Resuming podman
+SSH available: Resuming podman.
 Mounting volume... /Users/laurent:/Users/laurent
 
 This machine is currently configured in rootless mode. If your containers
