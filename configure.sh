@@ -57,14 +57,15 @@ create_machine(){
   podman system connection default $NAME
 
   # alter qemu configuration to set type as x86 and remove unsupported parameters
+  # changed '-cpu host' to '-cpu max' to resolve 'Fatal glibc error: CPU does not support x86-64-v2' for RHEL 9 images
   mylog info "Fixing machine $NAME parameters"
   config_file=$(podman machine inspect $NAME|jq -r '.[0].ConfigPath.Path')
   sed -E \
     -e '/^  "-[^"]*",$/ N' \
     -e 's|aarch64|x86_64|' \
+    -e 's|host|max|' \
     -e '/ovmf_vars/ d' \
     -e '/"-accel",/ d' \
-    -e '/"-cpu",/ d' \
     -e '/"-M",/ d' \
     -i '' \
     "$config_file"
