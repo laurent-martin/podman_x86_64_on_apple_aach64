@@ -63,12 +63,12 @@ create_machine(){
   sed \
     -i ''                  `#modify in place`\
     -E                     `#extended syntax`\
-    -e '/^  "-[^"]*",$/ N' `#merge option with next line for processing`\
-    -e 's|aarch64|x86_64|' `#change CPU architecture`\
-    -e 's|"host"|"max"|'   `#support RHEL9 for option -cpu`\
-    -e '/ovmf_vars/ d'     `#not supported`\
-    -e '/"-accel",/ d'     `#not supported`\
-    -e '/"-M",/ d'         `#not supported`\
+    -e '/^  "-[^"]*",$/ N' `#merge option with next line (value)`\
+    -e 's|aarch64|x86_64|' `#qemu: change, qemu CPU architecture`\
+    -e 's|"host"|"max"|'   `#-cpu: change, enable all CPU features to support RHEL9`\
+    -e '/ovmf_vars/ d'     `#-drive: remove, no UEFI firmware`\
+    -e '/"-accel",/ d'     `#-accel: remove, use default (tcg)`\
+    -e '/"-M",/ d'         `#-machine: remove, use default (pc)`\
     "$config_file"
 }
 mylog check "Checking jq"
