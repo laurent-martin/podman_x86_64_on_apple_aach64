@@ -1,7 +1,37 @@
 #!/bin/bash
 machine_name=$1
+if test -z "$machine_name";then
+    echo "Usage: $0 <machine name>" 1>&2
+    exit 1
+fi
+# Check jq is installed
+jq -h>/dev/null || exit 1
+# Check if machine exists
+podman machine inspect $machine_name > /dev/null || exit 1
+# Get configuration
+config="$(podman machine inspect $machine_name)"
+# extract parameter from config
+get_parameter(){
+    echo "$config"|jq -r ".[0].$1"
+}
+# Check state, propose to reset if state is "starting"
+conf_file=$(get_parameter ConfigPath.Path)
+state=$(get_parameter State)
+case "$state" in
+*ing)
+    if test "$2" = -f;then
+        echo "Resetting state."
+        tmp=$(mktemp)
+        jq '.Starting = false' $conf_file > "$tmp" && mv "$tmp" $conf_file
+    else
+        echo "Machine state: $state" 1>&2
+        echo "To reset state and force start, execute:" 1>&2
+        echo "$0 $* -f" 1>&2
+        exit 1
+    fi
+esac
 # get machine's SSH port
-export ssh_port=$(podman machine inspect $machine_name|jq -r '.[0].SSHConfig.Port')
+export ssh_port=$(get_parameter SSHConfig.Port)
 # start machine in background
 podman machine start $machine_name &
 # get podman's PID
