@@ -10,6 +10,8 @@ By default the created VM mounts `$HOME` (i.e. `/Users/[username]`) so that cont
 
 The second script overcomes a problem whereby the VM startup time is too slow for podman to wait and mount the volume.
 
+See [recording](https://asciinema.org/a/n5SCfJGqasOQOv4ntob77AxpF).
+
 ## Pre-requisites
 
 macOS >= 12.6
