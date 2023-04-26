@@ -102,22 +102,15 @@ start_machine(){
   # Check if machine exists
   podman machine inspect $NAME > /dev/null || exit 1
   # Check state, propose to reset if state is "starting"
-  conf_file=$(get_parameter ConfigPath.Path)
-  state=$(get_parameter State)
-  case "$state" in
-  *ing)
-      if test "$2" = -f;then
-          mylog warn "Resetting state." 1>&2
-          tmp=$(mktemp)
-          jq '.Starting = false' $conf_file > "$tmp" && mv "$tmp" $conf_file
-      else
-          mylog error "Machine state: $state" 1>&2
-          mylog warn "To reset state and force start, execute:" 1>&2
-          mylog warn "$0 $* -f" 1>&2
-          exit 1
-      fi
-      ;;
-  esac
+  local state=$(get_parameter State)
+  local conf_file=$(get_parameter ConfigPath.Path)
+  local starting=$(jq .Starting $conf_file)
+  # Sometimes, state is starting in state file, but not in reality
+  if test "$starting" = true -a -z "$state";then
+    mylog warn "Resetting stale starting state." 1>&2
+    tmp=$(mktemp)
+    jq '.Starting = false' $conf_file > "$tmp" && mv "$tmp" $conf_file
+  fi
   # get machine's SSH port
   export ssh_port=$(get_parameter SSHConfig.Port)
   # start machine in background
@@ -161,18 +154,22 @@ check_tool(){
   fi
 }
 
+# get optional machine name
 command="$1"
 shift
+if test ! -z "$1";then
+  NAME="$1"
+fi
 
 case "$command" in
   create|start)
     check_tool jq --version
     check_tool podman -v
     check_tool curl -V
-    ${command}_machine "$@"
+    ${command}_machine
     ;;
   *)
-    echo "Usage: $0 <create|start> [-f]" 1>&2
+    echo "Usage: $0 create|start [name]" 1>&2
     exit 1
     ;;
 esac

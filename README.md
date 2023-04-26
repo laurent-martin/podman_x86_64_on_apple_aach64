@@ -11,6 +11,15 @@ In start mode, it overcomes a problem whereby the VM startup time is too slow fo
 
 See [recording](https://asciinema.org/a/n5SCfJGqasOQOv4ntob77AxpF).
 
+## Usage
+
+```bash
+./podmac.sh create|start [name]
+```
+
+- `name` is the name of the virtual machine, optional, default is `intel_64`
+- env vars can be set to define the VM parameters (memory, cpu, storage)
+
 ## Pre-requisites
 
 macOS >= 12.6
@@ -35,7 +44,9 @@ Advanced use: override default machine parameters with env vars:
 NAME=intel_64 CPUS=4 RAM_MB=4096 DISK_GB=40 ./podmac.sh create
 ```
 
-> **Note:** Those parameters (but `name`, of course) can also be subsequently modified using `podman`:
+> **Note:** The machine name can be provided as first argument or env var `NAME`
+>
+> **Note:** Machine parameters (but `name`, of course) can be subsequently modified using `podman`:
 
 ```bash
 podman machine set --cpus=4 --disk-size=40 --memory=4096 intel_64
@@ -58,12 +69,10 @@ Error: exit status 255
 
 This is due to the `qemu` emulator taking too much time to startup the machine and make SSH available soon enough for podman to execute the mount command.
 
-> **Note:** Use env var `NAME` like in creation to change the machine name (optional)
-
 The script solves this issue by slowing down `podman`: use the `start` option:
 
 ```bash
-NAME=intel_64 ./podmac.sh start
+./podmac.sh start intel_64
 ```
 
 ```text
