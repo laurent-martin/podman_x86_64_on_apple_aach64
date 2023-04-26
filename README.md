@@ -2,13 +2,12 @@
 
 ## Description
 
-Two scripts that makes it easier to configure `podman` to run x86_64 containers on macOS running on aarch64 (Apple Silicon, M1, ...)
+A script that makes it easier to configure `podman` to run x86_64 containers on macOS running on aarch64 (Apple Silicon, M1, ...)
 
-A VM is created using `podman machine` and then VM parameters are modified.
-
+In configuration mode, VM is created using `podman machine` and then VM parameters are modified to use x86 emulation instead of local CPU architecture (Apple Chip).
 By default the created VM mounts `$HOME` (i.e. `/Users/[username]`) so that containers using volumes in the user's home also have access to it (for example, for persistent storage).
 
-The second script overcomes a problem whereby the VM startup time is too slow for podman to wait and mount the volume.
+In start mode, it overcomes a problem whereby the VM startup time is too slow for podman to wait and mount the volume.
 
 See [recording](https://asciinema.org/a/n5SCfJGqasOQOv4ntob77AxpF).
 
@@ -27,22 +26,22 @@ macOS >= 12.6
 Default use:
 
 ```bash
-./configure.sh
+./podmac.sh create
 ```
 
 Advanced use: override default machine parameters with env vars:
 
 ```bash
-NAME=intel_64 CPUS=4 RAM_MB=4096 DISK_GB=40 ./configure.sh
+NAME=intel_64 CPUS=4 RAM_MB=4096 DISK_GB=40 ./podmac.sh create
 ```
 
-> **Note:** Those parameters (but `name`, of course) can also be subsequently modified:
+> **Note:** Those parameters (but `name`, of course) can also be subsequently modified using `podman`:
 
 ```bash
 podman machine set --cpus=4 --disk-size=40 --memory=4096 intel_64
 ```
 
-## VM startup
+## Virtual Machine: Startup
 
 Often, simple startup results with:
 
@@ -59,10 +58,12 @@ Error: exit status 255
 
 This is due to the `qemu` emulator taking too much time to startup the machine and make SSH available soon enough for podman to execute the mount command.
 
-To solve this issue, one way is to slow down `podman`, the script `start.sh` is provided:
+> **Note:** Use env var `NAME` like in creation to change the machine name (optional)
+
+The script solves this issue by slowing down `podman`: use the `start` option:
 
 ```bash
-./start.sh intel_64
+NAME=intel_64 ./podmac.sh start
 ```
 
 ```text
@@ -90,4 +91,4 @@ Et voila !
 
 <https://developer.ibm.com/tutorials/running-x86-64-containers-mac-silicon-m1/>
 
-<!-- cSpell:ignore aarch cpus pkill gvproxy -->
+<!-- cSpell:ignore aarch cpus podmac -->
